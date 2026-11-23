@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大正蔵 引用箇所</title>
+<style>
+:root{--bg:#fdfcf8;--fg:#222;--muted:#777;--hl:#fff176;--hlbar:#e6a800;--line:#e5e2d8}
+@media (prefers-color-scheme:dark){:root{--bg:#1d1c1a;--fg:#e8e6e0;--muted:#999;--hl:#5c4f00;--hlbar:#ffcc33;--line:#3a3833}}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif CJK JP","HanaMinA","HanaMinB",serif}
+header{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--line);padding:10px 16px;font-family:system-ui,sans-serif;font-size:14px;z-index:1}
+header b{font-size:16px}
+header a{margin-left:12px}
+#msg{padding:16px;color:var(--muted);font-family:system-ui,sans-serif}
+#text{max-width:44em;margin:0 auto;padding:16px 16px 60vh}
+.l{display:flex;gap:1em;line-height:1.9;font-size:18px;padding:0 6px;border-left:4px solid transparent}
+.l .n{flex:none;width:5.5em;color:var(--muted);font-family:ui-monospace,monospace;font-size:12px;padding-top:.3em}
+.l.hl{background:var(--hl);border-left-color:var(--hlbar);font-weight:bold}
+sup.fn{color:var(--muted);font-size:10px;font-weight:normal;cursor:help}
+footer{font-family:system-ui,sans-serif;font-size:12px;color:var(--muted);text-align:center;padding:16px}
+</style>
+</head>
+<body>
+<header><b id="ref">…</b><a id="orig" href="#" target="_blank" rel="noopener">SAT2018 で開く</a></header>
+<div id="msg">読み込み中…</div>
+<div id="text"></div>
+<footer>本文：<a href="https://21dzk.l.u-tokyo.ac.jp/SAT2018/master30.php" target="_blank" rel="noopener">SAT大蔵経テキストデータベース2018</a>（SAT大蔵経テキストデータベース研究会）から表示時に取得</footer>
+<script>
+(function(){
+  const API='https://21dzk.l.u-tokyo.ac.jp/SAT2018/satdb2018pre.php?mode=detail&ob=1&mode2=2&mode4=&cpos=&regsw=&key=&useid=';
+  const msg=document.getElementById('msg');
+  // 受け付ける形式: T0848_.18.0004a29:0004b01.html / 区切りは . , | のいずれも可 / 終了側に T番号付きも可
+  const raw=decodeURIComponent((location.search||'').replace(/^\?/,'')+(location.hash||'').replace(/^#/,''));
+  const m=raw.match(/T?(\d{4}[A-Za-z_])[.,|](\d{2})[.,|](\d{4}[abc]\d{2})(?::(?:T?\d{4}[A-Za-z_][.,|]\d{2}[.,|])?(\d{4}[abc]\d{2}))?/);
+  if(!m){msg.textContent='引用箇所の指定を読み取れませんでした: '+raw;return;}
+  const [_,num,vol,s,e0]=m; const e=(e0&&e0>=s)?e0:s;
+  const no=num.replace(/_$/,'');
+  document.getElementById('ref').textContent='大正蔵 T'+no+'（第'+parseInt(vol,10)+'巻）'+s+(e!==s?'–'+e:'');
+  document.getElementById('orig').href='https://21dzk.l.u-tokyo.ac.jp/SAT2018/T'+num+'.'+vol+'.'+s+'.html';
+  document.title='T'+no+' '+s+(e!==s?'–'+e:'');
+  fetch(API+num+','+vol+','+s).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()}).then(html=>{
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    const out=document.getElementById('text'); let first=null;
+    doc.querySelectorAll('a.al').forEach(a=>{
+      const name=a.getAttribute('name')||''; const tx=a.querySelector('span.tx');
+      const row=document.createElement('div'); row.className='l';
+      const n=document.createElement('span'); n.className='n'; n.textContent=name;
+      const t=document.createElement('span');
+      if(tx) tx.childNodes.forEach(c=>{
+        if(c.nodeType===3) t.appendChild(document.createTextNode(c.data));
+        else if(c.tagName==='BUTTON'){const f=document.createElement('sup');f.className='fn';f.textContent=c.textContent;f.title=c.title||'';t.appendChild(f);}
+        else t.appendChild(document.createTextNode(c.textContent));
+      });
+      row.append(n,t);
+      if(name>=s&&name<=e){row.classList.add('hl'); if(!first) first=row;}
+      out.appendChild(row);
+    });
+    if(!first){msg.textContent='該当行が見つかりませんでした（SAT2018 側の表示を確認してください）。';return;}
+    msg.remove();
+    first.scrollIntoView({block:'center'});
+  }).catch(err=>{msg.textContent='SAT2018 から本文を取得できませんでした（'+err.message+'）。上の「SAT2018 で開く」から原文を参照してください。';});
+})();
+</script>
+</body>
+</html>
